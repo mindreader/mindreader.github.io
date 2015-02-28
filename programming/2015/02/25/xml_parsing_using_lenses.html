@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>XML Parsing Using Lenses</title>
+  <meta name="description" content="In my opinion there is a lack of practical examples that demonstrate the flexibility of lenses at the intermediate level of expertise.  I’d like to teach som...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://mindreader.github.io/programming/2015/02/25/xml_parsing_using_lenses.html">
+  <link rel="alternate" type="application/rss+xml" title="David's Protips" href="http://mindreader.github.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">David's Protips</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">XML Parsing Using Lenses</h1>
+    <p class="post-meta">Feb 25, 2015</p>
+  </header>
+
+  <article class="post-content">
+    <p>In my opinion there is a lack of practical examples that demonstrate the flexibility of lenses at the intermediate level of expertise.  I’d like to teach some real world examples of how to parse and transform html and xml via the very well documented but seemingly barely known <code>xml-html-conduit-lens</code> package.  We’ll start this off with just xml and maybe do another blog with html examples in the near future.</p>
+
+<p>The benefit of using lenses for parsing instead of libraries like <code>hxt</code> or <code>aeson</code> is that rather than learning a bunch of special purpose libraries, you can just learn lenses and then with a little knowledge about your domain, you can both parse AND transform a wide variety of structures in much the same ways.  In this case we’ll be experimenting with xml and html, but you could also use these concepts for json, bson, bencode, yaml, time, and a lot of other formats I can barely imagine yet all the combinators will basically retain the same shape and compose well with each other.</p>
+
+<p>For the purposes of this tutorial, I will be using <code>ghc-7.8.3</code>, <code>xml-html-conduit-lens-0.3.2.1</code>, and <code>lens-4.7</code> and I will try to make some source at the end of the article.  If you are unfamiliar with lens operators, I will try to periodically show them side by side their more verbose equivalents when they exist.</p>
+
+<h1 id="lets-parse-craigslist-rss">Let’s Parse Craigslist RSS</h1>
+
+<p>Craigslist has an rss that works <a href="http://louisville.craigslist.org/search/mcy?query=victory&amp;format=rss">like so</a> and produces xml similar to <a href="/src/cl.xml">this</a>.  Let’s get some imports out of the way.</p>
+
+<div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="cm">{-# LANGUAGE OverloadedStrings #-}</span>
+<span class="kr">module</span> <span class="nn">Blog</span> <span class="kr">where</span>
+
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.Text</span> <span class="k">as</span> <span class="n">T</span> 
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.Text.Lazy</span> <span class="k">as</span> <span class="n">LT</span>
+
+<span class="kr">import</span> <span class="nn">Text.XML</span> <span class="k">as</span> <span class="n">XML</span> <span class="p">(</span><span class="n">def</span><span class="p">,</span> <span class="n">readFile</span><span class="p">)</span>
+
+<span class="kr">import</span> <span class="nn">Text.Xml.Lens</span>
+<span class="kr">import</span> <span class="nn">Control.Lens</span></code></pre></div>
+
+<p>You will start by parsing the library from xml into a list of elements.  The <a href="http://hackage.haskell.org/package/xml-html-conduit-lens-0.3.2.1/docs/Text-Xml-Lens.html#v:xml"><code>xml</code></a> Traversal allows you to traverse an xml document via its elements.</p>
+
+<div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">somexml</span> <span class="ow">=</span> <span class="s">&quot;&lt;xml&gt; ...&quot;</span> <span class="ow">::</span> <span class="kt">LT</span><span class="o">.</span><span class="kt">Text</span>
+<span class="c1">-- (^..) is equivalent to flip toListOf</span>
+<span class="nf">els</span> <span class="ow">=</span> <span class="n">somexml</span> <span class="o">^..</span> <span class="n">xml</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Element</span><span class="p">]</span></code></pre></div>
+
+<p>Then you string together a series of nodes to walk down the hierarchy and fetch the text from it.  This xml is riddled with namespace, but the <code>xml-conduit</code> library allows you to specify a namespace conveniently, so long as you use the <code>OverloadedStrings</code> language pragma.</p>
+
+<div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">somexml</span> <span class="o">^..</span> <span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Element</span><span class="p">]</span>
+<span class="nf">somexml</span> <span class="o">^..</span> <span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Element</span><span class="p">]</span>
+<span class="nf">somexml</span> <span class="o">^..</span> <span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span> <span class="o">.</span> <span class="n">text</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Text</span><span class="p">]</span>
+<span class="c1">-- equivalent to</span>
+<span class="nf">toListOf</span> <span class="p">(</span><span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span> <span class="o">.</span> <span class="n">text</span><span class="p">)</span> <span class="n">somexml</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Text</span><span class="p">]</span></code></pre></div>
+
+<p>While you know there is only one title at this level, xml could have many title tags and that is reflected the types so far.  Since we know that there should only be one title at this level, we are free to narrow it down via numerous methods that <code>lens</code> provides.  You could just select the first index, if it exists.</p>
+
+<div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">somexml</span> <span class="o">^..</span> <span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span> <span class="o">.</span> <span class="n">text</span> <span class="o">^?</span> <span class="n">ix</span> <span class="mi">0</span> <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">Text</span></code></pre></div>
+
+<p>Alternatively, since a Traversal is technically also a Lens if the type you are traversing to is an instance of Monoid, you can use view instead of toListOf to apply a lens which will obtain all Texts from the titles and concatenate them into a single Text.</p>
+
+<div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">somexml</span> <span class="o">^.</span> <span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span> <span class="o">.</span> <span class="n">text</span> <span class="ow">::</span> <span class="kt">Text</span>
+<span class="c1">-- equivalent to</span>
+<span class="nf">view</span> <span class="p">(</span><span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span> <span class="o">.</span> <span class="n">text</span><span class="p">)</span> <span class="n">somexml</span> <span class="ow">::</span> <span class="kt">Text</span></code></pre></div>
+
+<p>Now that we have the title for the whole search, it is time to scrape out individual entries.  Let’s define some datatypes.</p>
+
+<div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="kr">data</span> <span class="kt">Query</span> <span class="ow">=</span> <span class="kt">Query</span> <span class="p">{</span>
+  <span class="n">qTitle</span> <span class="ow">::</span> <span class="kt">T</span><span class="o">.</span><span class="kt">Text</span><span class="p">,</span>
+  <span class="n">qEntries</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Entry</span><span class="p">]</span>
+<span class="p">}</span>
+<span class="kr">data</span> <span class="kt">Entry</span> <span class="ow">=</span> <span class="kt">Entry</span> <span class="p">{</span>
+  <span class="n">eTitle</span> <span class="ow">::</span> <span class="kt">T</span><span class="o">.</span><span class="kt">Text</span><span class="p">,</span>
+  <span class="n">eUrl</span> <span class="ow">::</span> <span class="kt">T</span><span class="o">.</span><span class="kt">Text</span><span class="p">,</span>
+  <span class="n">eDate</span> <span class="ow">::</span> <span class="kt">T</span><span class="o">.</span><span class="kt">Text</span>
+<span class="p">}</span></code></pre></div>
+
+<p>It is totally possible to simply parse the xml three times into three lists of titles, urls, and dates, then zip them together into an entry, but that’s not very robust.  If a single entry were missing a url, for example, your zip would come together incorrectly.  It also wouldn’t be efficient.  What we’d rather do is drill down into the list of items, and then grab each element that we need into an Entry.</p>
+
+<div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">query</span> <span class="ow">::</span> <span class="kt">LT</span><span class="o">.</span><span class="kt">Text</span> <span class="ow">-&gt;</span> <span class="kt">Query</span>
+<span class="nf">query</span> <span class="n">txt</span> <span class="ow">=</span> <span class="kt">Query</span> <span class="n">title</span> <span class="n">entries</span>
+  <span class="kr">where</span>
+    <span class="n">title</span> <span class="ow">::</span> <span class="kt">T</span><span class="o">.</span><span class="kt">Text</span>
+    <span class="n">title</span> <span class="ow">=</span> <span class="n">txt</span> <span class="o">^.</span> <span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}channel&quot;</span> <span class="o">.</span> <span class="p">(</span><span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span><span class="p">)</span> <span class="o">.</span> <span class="n">text</span>
+
+    <span class="n">entries</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Entry</span><span class="p">]</span>
+    <span class="n">entries</span> <span class="ow">=</span> <span class="n">txt</span> <span class="o">^..</span> <span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}item&quot;</span> <span class="o">&amp;</span> <span class="n">over</span> <span class="n">mapped</span> <span class="n">entry</span>
+    <span class="c1">-- equivalent to</span>
+    <span class="n">entries&#39;</span> <span class="ow">=</span> <span class="n">over</span> <span class="n">mapped</span> <span class="n">entry</span> <span class="o">$</span> <span class="n">toListOf</span> <span class="p">(</span><span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}item&quot;</span><span class="p">)</span> <span class="n">txt</span>
+    <span class="n">entries&#39;&#39;</span> <span class="ow">=</span> <span class="n">map</span> <span class="n">entry</span> <span class="o">$</span> <span class="n">toListOf</span> <span class="p">(</span><span class="n">xml</span> <span class="o">.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}item&quot;</span><span class="p">)</span> <span class="n">txt</span>
+
+    <span class="n">entry</span> <span class="ow">::</span> <span class="kt">Element</span> <span class="ow">-&gt;</span> <span class="kt">Entry</span>
+    <span class="n">entry</span> <span class="n">x</span> <span class="ow">=</span> <span class="kt">Entry</span>
+            <span class="p">(</span><span class="n">x</span> <span class="o">^.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/rss/1.0/}title&quot;</span> <span class="o">.</span> <span class="n">text</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">x</span> <span class="o">^.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/dc/elements/1.1/}source&quot;</span> <span class="o">.</span> <span class="n">text</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">x</span> <span class="o">^.</span> <span class="n">node</span> <span class="s">&quot;{http://purl.org/dc/elements/1.1/}date&quot;</span> <span class="o">.</span> <span class="n">text</span><span class="p">)</span></code></pre></div>
+
+<p><a href="http://hackage.haskell.org/package/lens-4.7/docs/Control-Lens-Setter.html#v:mapped"><code>mapped</code></a> is just a Setter over any Functor.  A list is an instance of Functor, therefore you can use it with <code>set</code> or <code>over</code> functions from the lens library to map over it.  The <code>&amp;</code> function is just <code>flip $</code>.  It allows you to string long chains of Setter oriented code.</p>
+
+<p>This concludes part one of this tutorial series.</p>
+
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">David's Protips</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>David's Protips</li>
+          <li><a href="mailto:mr.david.w.mcbride@gmail.com">mr.david.w.mcbride@gmail.com</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/mindreader">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">mindreader</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-3">
+        <p class="text">I like programming and so do you, so I wrote this site about programming for you.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
