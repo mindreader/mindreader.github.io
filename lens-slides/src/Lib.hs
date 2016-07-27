@@ -70,7 +70,7 @@ presentation =
         Fresh $ span_ "It all starts with the optical" <> baseoptical
       , Fresh $ baseoptical <> opticalwitharrows
       , ContinueLast $ span_ "after some substitution" <> lenslike
-      , Fresh $ span_ "everything has the same shape"
+      , Fresh $ span_ "everything has this same shape"
       , ContinueLast $ lens_types_1
       , ContinueSecondToLast $ lens_types_2
       , Fresh $ span_ "takes a function, returns a function" <> lenslikeasfunction

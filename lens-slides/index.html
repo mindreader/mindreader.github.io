@@ -4,7 +4,7 @@
 </code></pre></section><section><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
 </code></pre><pre><code class="hs">  type LensLike = Optical (-&gt;) (-&gt;) f s t a b
 </code></pre><span>after some substitution</span><pre><code class="hs">type LensLike = (a -&gt; f b) -&gt; s -&gt; f t
-</code></pre></section><section><span>everything has the same shape</span></section><section><span>everything has the same shape</span><pre><code class="hs">type Lens s t a b =
+</code></pre></section><section><span>everything has this same shape</span></section><section><span>everything has this same shape</span><pre><code class="hs">type Lens s t a b =
   Functor f =&gt;
     (a -&gt; f b) -&gt; s -&gt; f t
 
@@ -19,7 +19,7 @@ type Getter s a =
 type Iso s t a b =
   (Profunctor p, Functor f) =&gt;
     (a -&gt; f b) -&gt; s -&gt; f t
-  </code></pre></section><section><span>everything has the same shape</span><pre><code class="hs">
+  </code></pre></section><section><span>everything has this same shape</span><pre><code class="hs">
 type Traversal s t a b =
   Applicative f =&gt; (a -&gt; f b) -&gt; s -&gt; f t
 
