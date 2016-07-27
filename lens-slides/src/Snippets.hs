@@ -360,7 +360,8 @@ plated_examples = hcode [s|
 
 plated_examples_2 = hcode [s|
   > let newputin =
-     putin & over (parents . element 0 . parents) (<> [Person "mchealy" Male []])
+     putin & over (parents . element 0 . parents)
+        (<> [Person "mchealy" Male []])
 
   > newputin ^.. id ... id ... pname
   [Name "mchealy"]
@@ -405,7 +406,12 @@ lens_aeson_example = hcode [s|
   Number 1.0
   
   :set -XOverloadedLists, :set XOverloadedStrings
-  > _Object # [("key", _String # "value")]
+  > _Object # [("key", _String # "value")] :: Text
+  "{\"key\":\"value\"}"
+
+
+  > _Object # [("key", _String # "value")] :: Value
+  Object (fromList [("key",String "value")])
 
   -- piece of cake
 |]

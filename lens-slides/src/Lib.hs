@@ -62,7 +62,8 @@ presentation :: Slides
 presentation =
   Slides [
     SlideSection [
-      Fresh (h1_ "Lens" <> h4_ "The basic idea behind Edward A. Kmett's lens library")
+      Fresh $ h1_ "Lens" <> with (h4_ "The practical use of Edward A. Kmett's lens library") [style_ "margin-bottom: 40px"],
+      ContinueLast $ h5_ "View slides online at:" <> span_ "https://mindreader.github.io/lens-slides/index.html"
     ],
 
     SlideSection [
@@ -189,6 +190,7 @@ presentation =
     SlideSection [
         Fresh $ h5_ "Plated (optional)" <> plated_type
       , Fresh $ plated_examples
+      , Fresh $ plated_examples_2
     ],
 
     SlideSection [
@@ -202,9 +204,12 @@ presentation =
     SlideSection [
         Fresh "Thank you!"
       , ContinueLast $ mconcat [
-           h1_ "View slides online at https://mindreader.github.io/lens-slides/index.html"
-         , h1_ "Code for these slides: https://github.com/mindreader/haskell-lens-slides"
-         , h1_ "Questions, comments, corrections, clarifications: david.mchealy@gmail.com"
+           h5_ "View slides online at:"
+         , span_ "https://mindreader.github.io/lens-slides/index.html"
+         , with (h5_ "Code for these slides:") [style_ "margin-top: 20px"]
+         , span_ "https://github.com/mindreader/haskell-lens-slides"
+         , with (h5_ "Questions, comments, corrections, clarifications:") [style_ "margin-top: 30px"]
+         , span_ "david.mchealy@gmail.com"
         ]
     ]
   ]
@@ -341,6 +346,7 @@ presentation = rdiv $ rslide $
  rsect (mconcat $ map rsect $ [
       h5_ "Plated (optional)" <> plated_type
     , plated_examples
+    , plated_examples_2
     ]) <>
 
  rsect (mconcat $ map rsect $ [

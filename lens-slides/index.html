@@ -1,4 +1,4 @@
-<!DOCTYPE HTML><html><head><link href="public/highlight/styles/pojoaque.css" rel="stylesheet"><link href="public/reveal.js-3.3.0/css/reveal.css" rel="stylesheet"><link href="public/reveal.js-3.3.0/css/theme/black.css" rel="stylesheet"></head><body style="background-color: black"><div class="reveal"><div class="slides"><section><section><h1>Lens</h1><h4>The basic idea behind Edward A. Kmett&#39;s lens library</h4></section></section><section><section><span>It all starts with the optical</span><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
+<!DOCTYPE HTML><html><head><link href="public/highlight/styles/pojoaque.css" rel="stylesheet"><link href="public/reveal.js-3.3.0/css/reveal.css" rel="stylesheet"><link href="public/reveal.js-3.3.0/css/theme/black.css" rel="stylesheet"></head><body style="background-color: black"><div class="reveal"><div class="slides"><section><section><h1>Lens</h1><h4 style="margin-bottom: 40px">The practical use of Edward A. Kmett&#39;s lens library</h4></section><section><h1>Lens</h1><h4 style="margin-bottom: 40px">The practical use of Edward A. Kmett&#39;s lens library</h4><h5>View slides online at:</h5><span>https://mindreader.github.io/lens-slides/index.html</span></section></section><section><section><span>It all starts with the optical</span><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
 </code></pre></section><section><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
 </code></pre><pre><code class="hs">  type LensLike = Optical (-&gt;) (-&gt;) f s t a b
 </code></pre></section><section><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
@@ -649,6 +649,12 @@ declareLenses [d|
 
   &gt; putin ^.. id ... id ... pname -- grand children
   []
+</code></pre></section><section><pre><code class="hs">  &gt; let newputin =
+     putin &amp; over (parents . element 0 . parents)
+        (&lt;&gt; [Person &quot;mchealy&quot; Male []])
+
+  &gt; newputin ^.. id ... id ... pname
+  [Name &quot;mchealy&quot;]
 </code></pre></section></section><section><section><h5>Real life examples</h5></section><section><span>xml-html-conduit-lens</span><pre><code class="hs">
   xml :: HaxXML a =&gt; Traversal&#39; a Element
   instance HasXML Document
@@ -682,7 +688,12 @@ declareLenses [d|
   Number 1.0
   
   :set -XOverloadedLists, :set XOverloadedStrings
-  &gt; _Object # [(&quot;key&quot;, _String # &quot;value&quot;)]
+  &gt; _Object # [(&quot;key&quot;, _String # &quot;value&quot;)] :: Text
+  &quot;{\&quot;key\&quot;:\&quot;value\&quot;}&quot;
+
+
+  &gt; _Object # [(&quot;key&quot;, _String # &quot;value&quot;)] :: Value
+  Object (fromList [(&quot;key&quot;,String &quot;value&quot;)])
 
   -- piece of cake
 </code></pre></section><section><span>lens-aeson</span><pre><code class="hs">  -- parse json
@@ -698,4 +709,4 @@ declareLenses [d|
   ])
 
   -- piece of cake
-</code></pre></section></section><section><section>Thank you!</section><section>Thank you!<h1>View slides online at https://mindreader.github.io/lens-slides/index.html</h1><h1>Code for these slides: https://github.com/mindreader/haskell-lens-slides</h1><h1>Questions, comments, corrections, clarifications: david.mchealy@gmail.com</h1></section></section></div></div><script src="public/reveal.js-3.3.0/lib/js/head.min.js"></script><script src="public/reveal.js-3.3.0/js/reveal.js"></script><script>Reveal.initialize({ 'center': true, 'controls': true, 'dependencies': [{ 'condition': (function() { return !document.body.classList; }), 'src': "public\/reveal.js-3.3.0\/lib\/js\/classList.js" }, { 'condition': (function() { return !(!(document.querySelector("[data-markdown]"))); }), 'src': "public\/reveal.js-3.3.0\/plugin\/markdown\/marked.js" }, { 'async': true, 'callback': (function() { hljs.initHighlightingOnLoad(); }), 'src': "public\/highlight\/highlight.pack.js" }], 'history': true, 'keyboard': null, 'progress': true, 'transition': "none" });</script></body></html>
+</code></pre></section></section><section><section>Thank you!</section><section>Thank you!<h5>View slides online at:</h5><span>https://mindreader.github.io/lens-slides/index.html</span><h5 style="margin-top: 20px">Code for these slides:</h5><span>https://github.com/mindreader/haskell-lens-slides</span><h5 style="margin-top: 30px">Questions, comments, corrections, clarifications:</h5><span>david.mchealy@gmail.com</span></section></section></div></div><script src="public/reveal.js-3.3.0/lib/js/head.min.js"></script><script src="public/reveal.js-3.3.0/js/reveal.js"></script><script>Reveal.initialize({ 'center': true, 'controls': true, 'dependencies': [{ 'condition': (function() { return !document.body.classList; }), 'src': "public\/reveal.js-3.3.0\/lib\/js\/classList.js" }, { 'condition': (function() { return !(!(document.querySelector("[data-markdown]"))); }), 'src': "public\/reveal.js-3.3.0\/plugin\/markdown\/marked.js" }, { 'async': true, 'callback': (function() { hljs.initHighlightingOnLoad(); }), 'src': "public\/highlight\/highlight.pack.js" }], 'history': true, 'keyboard': null, 'progress': true, 'transition': "none" });</script></body></html>
