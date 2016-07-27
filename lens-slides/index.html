@@ -533,4 +533,169 @@ declareLenses [d|
     Person (Name &quot;Maria Ivanovna Putina&quot;) Male [],
     Person (Name &quot;Vladimir Spiridonovich Putin&quot;) Female []
   ]
-</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section></div></div><script src="public/reveal.js-3.3.0/lib/js/head.min.js"></script><script src="public/reveal.js-3.3.0/js/reveal.js"></script><script>Reveal.initialize({ 'center': true, 'controls': true, 'dependencies': [{ 'condition': (function() { return !document.body.classList; }), 'src': "public\/reveal.js-3.3.0\/lib\/js\/classList.js" }, { 'condition': (function() { return !(!(document.querySelector("[data-markdown]"))); }), 'src': "public\/reveal.js-3.3.0\/plugin\/markdown\/marked.js" }, { 'async': true, 'callback': (function() { hljs.initHighlightingOnLoad(); }), 'src': "public\/highlight\/highlight.pack.js" }], 'history': true, 'keyboard': null, 'progress': true, 'transition': "none" });</script></body></html>
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Iso</h5><pre><code class="hs">  type Iso s t a b =
+    (Profunctor p, Functor f) =&gt;
+      p a (f b) -&gt; p s (f t)
+
+  type Iso&#39; s a = Simple Iso = Iso s s a a
+</code></pre></section><section><span>Iso comes from the word &quot;isomorphism&quot;</span>which means roughly equivalent, the same, interchangeable</section><section><span>you can construct an Iso from two functions (a -&gt; b) and (b -&gt; a)</span><pre><code class="hs">  iso :: (a -&gt; b) -&gt; (b -&gt; a) -&gt; Iso&#39; a b
+
+  from :: (Functor f, Profunctor p) =&gt;
+     AnIso s t a b -&gt; p t (f s) -&gt; p b (f a)
+  -- idealized
+  from :: Iso&#39; a b -&gt; Iso&#39; b a
+</code></pre></section><section><span>there are lots of useful isos</span><pre><code class="hs">  import Data.Char
+  let myiso :: Iso&#39; Char Char
+      myiso = iso toUpper toLower
+
+  &gt; view myiso &#39;a&#39;
+  &gt; &#39;a&#39; ^. myiso
+  -- also &#39;A&#39; ^. myiso
+  &#39;A&#39;
+
+  &gt; view (from myiso) &#39;A&#39;
+  &gt; &#39;A&#39; ^. from myiso
+  -- also &#39;a&#39; ^. from myiso
+  &#39;a&#39;
+</code></pre></section><section><pre><code class="hs">  enum :: Enum a =&gt; Iso&#39; Int a
+  reversed :: Reversing a =&gt; Iso&#39; a a 
+  instance Reversing Text
+  instance Reversing String
+  .. others
+
+  lazy :: (Functor f, Profunctor p, Strict lazy strict) =&gt;
+     p lazy (f lazy) -&gt; p strict (f strict)
+  -- idealized
+  lazy :: Strict a b =&gt; Iso&#39; b a
+  instance Strict Data.Text.Lazy Data.Text
+  instance Strict Data.ByteString.Lazy Data.ByteString
+</code></pre></section><section><pre><code class="hs">  &gt;&quot;asdf&quot; ^. reversed ^. from reversed
+  &quot;asdf&quot;
+  
+  &gt;:t (&quot;asdf&quot; ::  T.Text) ^. lazy
+  (&quot;asdf&quot; ::  T.Text) ^. lazy :: LT.Text
+
+  &gt; (&quot;asdf&quot; ::  T.Text) &amp; lazy .~ (&quot;asdf&quot; :: LT.Text)
+  &quot;asdf&quot; -- :: LT.Text
+  &gt;(&quot;asdf&quot; ::  LT.Text) &amp; from lazy .~ (&quot;asdf&quot; :: T.Text)
+  &quot;asdf&quot; -- :: T.Text
+
+  &gt;97 ^. enum :: Char
+ &#39;a&#39;
+
+  (&quot;asdf&quot; :: [Char]) ^.. traverse . from enum
+  [97,115,100,102]
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Prism</h5><pre><code class="hs">  type Prism s t a b =
+    (Choice p, Applicative f) =&gt;
+      p a (f b) -&gt; p s (f t)
+
+  type Prism&#39; s a = Simple Prism = Prism s s a a
+</code></pre></section><section><span>A Prism a b allows for an a to possibly be converted to a b</span></section><section><span>and if you managed to turn it into a b, then it definitely can be turned back into an a</span></section><section><pre><code class="hs">  re :: Contravariant f =&gt; AReview t b -&gt; LensLike&#39; f b t
+  -- idealized
+  re :: Prism&#39; a b -&gt; Getter b a
+
+  -- allows s and t to differ
+  prism :: (b -&gt; t) -&gt; (s -&gt; Either t a) -&gt; Prism s t a b 
+
+  -- more often used
+  prism&#39; :: (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b 
+
+  -- for our uses
+  prism&#39; :: (a -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism&#39; s a
+</code></pre></section><section><pre><code class="hs">  import Data.Int
+
+  let myprism :: Prism&#39; Int64 Int8
+      myprism = prism&#39; fromIntegral (\i -&gt;
+        if i &lt;= 127 &amp;&amp; i &gt;= (-128)
+          then Just (fromIntegral i)
+          else Nothing)
+
+  &gt; 12 ^? myprism
+  Just 12
+
+  &gt; 999 ^? myprism
+  Nothing
+
+  &gt;:t  12 ^. re myprism
+  12 ^. re myprism :: Int64
+</code></pre></section><section><pre><code class="hs">  Data.Text.Lazy.utf8 :: Prism&#39; ByteString Text
+  
+  -- This bs could have invalid characters in it
+  &gt; (&quot;asdf&quot; :: ByteString) ^? utf8
+  Just &quot;asdf&quot; -- :: Text
+
+  -- Text can always be converted back to bytestring
+  &gt; (&quot;asdf&quot; :: Text) ^. re utf8
+  &quot;asdf&quot; -- :: ByteString
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Plated (optional)</h5><pre><code class="hs">  class Plated a where
+    plate :: Traversal&#39; a a
+
+  instance Plated [a]
+  instance Plated (Tree a)
+
+  data Person = Person Name Gender [Person] deriving Show
+  parents :: Lens&#39; Person [Person]
+
+  instance Plated Person where
+    plate = parents . traverse
+</code></pre></section><section><pre><code class="hs">  l ... m = l . plate . m
+
+  &gt; putin ^.. pname
+  [Name &quot;Vladimir Vladimirovich Putin&quot;]
+
+  &gt; putin ^.. id ... pname -- children
+  [Name &quot;Maria Ivanovna Putina&quot;,
+   Name &quot;Vladimir Spiridonovich Putin&quot;]
+
+  &gt; putin ^.. id ... id ... pname -- grand children
+  []
+</code></pre></section></section><section><section><h5>Real life examples</h5></section><section><span>xml-html-conduit-lens</span><pre><code class="hs">
+  xml :: HaxXML a =&gt; Traversal&#39; a Element
+  instance HasXML Document
+  instance HasXML LT.Text
+  instance Plated Element
+
+  import qualified Data.Text.Lazy as LT
+  let doc :: LT.Text
+      doc = &quot;&lt;root&gt;&lt;channel&gt;&lt;title&gt;craigslist louisville
+              &lt;/title&gt;&lt;channel&gt;&lt;/root&gt;&quot;
+
+  &gt; :t  doc ^. xml
+  [Element {elementName = Name {nameLocalName = &quot;root&quot;, name ...
+</code></pre></section><section><span>xml-html-conduit-lens</span><pre><code class="hs">  &gt;doc ^. xml . name
+  &quot;root&quot;
+
+  &gt; doc ^. xml ... name . text
+  &quot;channel&quot;
+
+  &gt; doc ^. xml ... texts
+  &quot;craigslist louisville&quot;
+
+  &gt; let
+      channeln :: Traversal&#39; Element Element
+      channeln = node &quot;{http://purl.org/rss/1.0/}channel&quot;
+
+  -- assuming doc has namespaces
+  &gt; doc ^.. xml . channeln . name :: [Text]
+</code></pre></section><section><span>lens-aeson</span><pre><code class="hs">  -- create aeson values
+  &gt; _Integer # 1 :: Value
+  Number 1.0
+  
+  :set -XOverloadedLists, :set XOverloadedStrings
+  &gt; _Object # [(&quot;key&quot;, _String # &quot;value&quot;)]
+
+  -- piece of cake
+</code></pre></section><section><span>lens-aeson</span><pre><code class="hs">  -- parse json
+  &gt; &quot;[1,2,3,4,\&quot;adsf\&quot;]&quot; ^? _Array
+  Just [Number 1.0,Number 2.0,Number 3.0,Number 4.0,String &quot;adsf&quot;]
+
+  &gt; &quot;{\&quot;key\&quot;:\&quot;value\&quot;}&quot; ^? _Array
+  Nothing
+
+  &gt; &quot;[1,2,3,4,\&quot;adsf\&quot;]&quot; ^? _Value
+  Just (Array [
+   Number 1.0,Number 2.0,Number 3.0,Number 4.0,String &quot;adsf&quot;
+  ])
+
+  -- piece of cake
+</code></pre></section></section><section><section>Thank you!</section><section>Thank you!<h1>View slides online at https://mindreader.github.io/lens-slides/index.html</h1><h1>Code for these slides: https://github.com/mindreader/haskell-lens-slides</h1><h1>Questions, comments, corrections, clarifications: david.mchealy@gmail.com</h1></section></section></div></div><script src="public/reveal.js-3.3.0/lib/js/head.min.js"></script><script src="public/reveal.js-3.3.0/js/reveal.js"></script><script>Reveal.initialize({ 'center': true, 'controls': true, 'dependencies': [{ 'condition': (function() { return !document.body.classList; }), 'src': "public\/reveal.js-3.3.0\/lib\/js\/classList.js" }, { 'condition': (function() { return !(!(document.querySelector("[data-markdown]"))); }), 'src': "public\/reveal.js-3.3.0\/plugin\/markdown\/marked.js" }, { 'async': true, 'callback': (function() { hljs.initHighlightingOnLoad(); }), 'src': "public\/highlight\/highlight.pack.js" }], 'history': true, 'keyboard': null, 'progress': true, 'transition': "none" });</script></body></html>
