@@ -67,6 +67,7 @@ presentation :: Slides
 presentation =
   Slides [
     SlideSection [
+--      Fresh $ testsnippet,
       Fresh $ h1_ "Lens" <> with (h4_ "The practical use of Edward A. Kmett's lens library") [style_ "margin-bottom: 40px"],
       ContinueLast $ h5_ "View slides online at:" <> span_ "https://mindreader.github.io/lens-slides/index.html"
     ],
