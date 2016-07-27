@@ -91,12 +91,7 @@ type Prism s t a b =
     minimum :: forall a . Ord a =&gt; t a -&gt; a
     sum :: Num a =&gt; t a -&gt; a
     product :: Num a =&gt; t a -&gt; a
- </code></pre></section><section><pre><code class="hs">  &gt; toListOf mylens 2
-  [2,2,2,2,2]
-
-  &gt; 3 ^.. mylens
-  [3,3,3,3,3]
-</code></pre></section><section><pre><code class="hs">  foldOf :: Getting a s a -&gt; s -&gt; a
+ </code></pre></section><section><pre><code class="hs">  foldOf :: Getting a s a -&gt; s -&gt; a
   foldMapOf :: Getting r s a -&gt; (a -&gt; r) -&gt; s -&gt; r
   foldrOf :: Getting (Data.Monoid.Endo r) s a -&gt;
                 (a -&gt; r -&gt; r) -&gt; r -&gt; s -&gt; r

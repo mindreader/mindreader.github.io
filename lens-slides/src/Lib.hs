@@ -89,7 +89,6 @@ presentation =
       , Fresh $ fold_toList
       , Fresh $ fold_examples_1
       , Fresh $ foldable_class
-      , Fresh $ fold_examples_1
       , Fresh $ fold_lenses
       , Fresh $ fold_examples_2
       , Fresh $ fold_worded_listed
