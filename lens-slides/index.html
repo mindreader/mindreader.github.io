@@ -1,0 +1,536 @@
+<!DOCTYPE HTML><html><head><link href="public/highlight/styles/pojoaque.css" rel="stylesheet"><link href="public/reveal.js-3.3.0/css/reveal.css" rel="stylesheet"><link href="public/reveal.js-3.3.0/css/theme/black.css" rel="stylesheet"></head><body style="background-color: black"><div class="reveal"><div class="slides"><section><section><h1>Lens</h1><h4>The basic idea behind Edward A. Kmett&#39;s lens library</h4></section></section><section><section><span>It all starts with the optical</span><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
+</code></pre></section><section><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
+</code></pre><pre><code class="hs">  type LensLike = Optical (-&gt;) (-&gt;) f s t a b
+</code></pre></section><section><pre><code class="hs">  type Optical p q f s t a b = p a (f b) -&gt; q s (f t)
+</code></pre><pre><code class="hs">  type LensLike = Optical (-&gt;) (-&gt;) f s t a b
+</code></pre><span>after some substitution</span><pre><code class="hs">type LensLike = (a -&gt; f b) -&gt; s -&gt; f t
+</code></pre></section><section><span>everything has the same shape</span></section><section><span>everything has the same shape</span><pre><code class="hs">type Lens s t a b =
+  Functor f =&gt;
+    (a -&gt; f b) -&gt; s -&gt; f t
+
+type Setter s t a b =
+  Settable f =&gt;
+    (a -&gt; f b) -&gt; s -&gt; f t
+
+type Getter s a =
+  (Contravariant f, Functor f) =&gt;
+    (a -&gt; f a) -&gt; s -&gt; f s
+
+type Iso s t a b =
+  (Profunctor p, Functor f) =&gt;
+    (a -&gt; f b) -&gt; s -&gt; f t
+  </code></pre></section><section><span>everything has the same shape</span><pre><code class="hs">
+type Traversal s t a b =
+  Applicative f =&gt; (a -&gt; f b) -&gt; s -&gt; f t
+
+type Fold s a =
+  (Contravariant f, Applicative f) =&gt;
+    (a -&gt; f a) -&gt; s -&gt; f s
+
+type Prism s t a b =
+  (Choice p, Applicative f) =&gt;
+    p a (f b) -&gt; p s (f t)
+ </code></pre></section><section><span>takes a function, returns a function</span><pre><code class="hs">                 (a -&gt; f b) -&gt; (s -&gt; f t)
+</code></pre></section><section><span>so you can string them together</span><pre><code class="hs">_1 :: (Functor f, Field1 s t a b) =&gt; (a -&gt; f b) -&gt; s -&gt; f t</code></pre><pre><code class="hs">_2 :: (Functor f, Field2 s t a b) =&gt; (a -&gt; f b) -&gt; s -&gt; f t</code></pre><pre><code class="hs">_Just :: (Applicative f, Choice p) =&gt;
+              p a (f b) -&gt; p (Maybe a) (f (Maybe b))
+</code></pre><pre><code class="hs">     instance Choice (-&gt;)
+</code></pre></section><section><span>so you can string them together</span><pre><code class="hs">_1 :: (Functor f, Field1 s t a b) =&gt; (a -&gt; f b) -&gt; s -&gt; f t</code></pre><pre><code class="hs">_2 :: (Functor f, Field2 s t a b) =&gt; (a -&gt; f b) -&gt; s -&gt; f t</code></pre><pre><code class="hs">_Just :: (Applicative f, Choice p) =&gt;
+              p a (f b) -&gt; p (Maybe a) (f (Maybe b))
+</code></pre><pre><code class="hs">     instance Choice (-&gt;)
+</code></pre><pre><code class="hs">_1 . _Just . _2  ::
+        (Applicative f, Field2 a b a1 b1,
+         Field1 s t (Maybe a) (Maybe b)) =&gt;
+             (a1 -&gt; f b1) -&gt; s -&gt; f t)
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Fold</h5><pre><code class="hs">  type Fold s a =
+      (Contravariant f, Applicative f) =&gt;
+        (a -&gt; f a) -&gt; s -&gt; f s
+</code></pre></section><section><pre><code class="hs">  replicated :: (Applicative f, Contravariant f) =&gt;
+     Int -&gt; (a -&gt; f a) -&gt; a -&gt; f a
+
+  -- idealized
+  replicated :: Int -&gt; Fold a a
+
+</code></pre></section><section><pre><code class="hs">  replicated :: (Applicative f, Contravariant f) =&gt;
+     Int -&gt; (a -&gt; f a) -&gt; a -&gt; f a
+
+  -- idealized
+  replicated :: Int -&gt; Fold a a
+
+</code></pre><span>takes an a, returns many a&#39;s (or none)</span></section><section><pre><code class="hs">  let
+    myfold :: Fold a a
+    myfold = replicated 5
+</code></pre></section><section><pre><code class="hs">  let
+    myfold :: Fold a a
+    myfold = replicated 5
+</code></pre><span>we have a fold. what do I do with it?</span></section><section><pre><code class="hs">  -- You can turn it into a list
+  toListOf :: Getting (Data.Monoid.Endo [a]) s a -&gt; s -&gt; [a]
+  (^..) :: s -&gt; Getting (Data.Monoid.Endo [a]) s a -&gt; [a]
+
+  -- idealized
+  toListOf :: Fold a b -&gt; a -&gt; [b]
+  (^..) :: a -&gt; Fold a b -&gt; [b]
+</code></pre></section><section><pre><code class="hs">  &gt; toListOf mylens 2
+  [2,2,2,2,2]
+
+  &gt; 3 ^.. mylens
+  [3,3,3,3,3]
+</code></pre></section><section><pre><code class="hs">  class Foldable t where
+    fold :: Monoid m =&gt; t m -&gt; m
+    foldMap :: Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m
+    foldr :: (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+    foldr&#39; :: (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+    foldl :: (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+    foldl&#39; :: (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+    foldr1 :: (a -&gt; a -&gt; a) -&gt; t a -&gt; a
+    foldl1 :: (a -&gt; a -&gt; a) -&gt; t a -&gt; a
+    toList :: t a -&gt; [a]
+    null :: t a -&gt; Bool
+    length :: t a -&gt; Int
+    elem :: Eq a =&gt; a -&gt; t a -&gt; Bool
+    maximum :: forall a . Ord a =&gt; t a -&gt; a
+    minimum :: forall a . Ord a =&gt; t a -&gt; a
+    sum :: Num a =&gt; t a -&gt; a
+    product :: Num a =&gt; t a -&gt; a
+ </code></pre></section><section><pre><code class="hs">  &gt; toListOf mylens 2
+  [2,2,2,2,2]
+
+  &gt; 3 ^.. mylens
+  [3,3,3,3,3]
+</code></pre></section><section><pre><code class="hs">  foldOf :: Getting a s a -&gt; s -&gt; a
+  foldMapOf :: Getting r s a -&gt; (a -&gt; r) -&gt; s -&gt; r
+  foldrOf :: Getting (Data.Monoid.Endo r) s a -&gt;
+                (a -&gt; r -&gt; r) -&gt; r -&gt; s -&gt; r
+  toListOf :: Getting (Data.Monoid.Endo [a]) s a -&gt; s -&gt; [a]
+
+  nullOf :: Getting Data.Monoid.All s a -&gt; s -&gt; Bool
+  lengthOf ::
+    Getting (Data.Monoid.Endo (Data.Monoid.Endo Int)) s a -&gt;
+       s -&gt; Int
+  -- all the others...
+</code></pre></section><section><pre><code class="hs">  &gt; lengthOf mylens 1
+  5
+
+  &gt; sumOf mylens 2
+  10
+
+  &gt; nullOf mylens 1
+  False
+
+  &gt; nullOf (replicated 0) 1
+  True
+</code></pre></section><section><pre><code class="hs">  worded :: (Applicative f, Indexable Int p) =&gt;
+     p String (f String) -&gt; String -&gt; f String
+  lined :: (Applicative f, Indexable Int p) =&gt;
+     p String (f String) -&gt; String -&gt; f String
+
+  -- idealized
+  worded :: Fold String String
+  lined :: Fold String String
+</code></pre></section><section><pre><code class="hs">  &gt; toListOf worded &quot;ipso facto&quot;
+  &gt; &quot;ipso facto&quot; ^.. worded
+  [&quot;ipso&quot;,&quot;facto&quot;]
+
+  &gt; toListOf lined &quot;asdf\nqwerty asdf\n&quot;
+  &gt; &quot;asdf\nqwerty asdf\n&quot; ^.. lined
+  [&quot;asdf&quot;, &quot;qwerty asdf&quot;]
+</code></pre></section><section><span>and of course they can be combined</span><pre><code class="hs">  &gt; let txt = &quot;asdf fdsa\nfoo bar baz\nyo&quot;
+
+  &gt; toListOf (lined . worded) txt
+  &gt; txt ^.. lined . worded
+  [&quot;asdf&quot;,&quot;fdsa&quot;,&quot;foo&quot;,&quot;bar&quot;,&quot;baz&quot;,&quot;yo&quot;]
+
+  &gt; toListOf (lined . replicated 2 . worded) txt
+  &gt; txt ^.. lined . replicated 2 . worded
+  [&quot;asdf&quot;,&quot;fdsa&quot;,&quot;asdf&quot;,&quot;fdsa&quot;,&quot;foo&quot;,&quot;bar&quot;,&quot;baz&quot;,
+   &quot;foo&quot;,&quot;bar&quot;,&quot;baz&quot;,&quot;yo&quot;,&quot;yo&quot;]
+
+  &gt; txt ^.. replicated 2 . lined . worded
+  [&quot;asdf&quot;,&quot;fdsa&quot;,&quot;foo&quot;,&quot;bar&quot;,&quot;baz&quot;,&quot;yo&quot;,
+   &quot;asdf&quot;,&quot;fdsa&quot;,&quot;foo&quot;,&quot;bar&quot;,&quot;baz&quot;,&quot;yo&quot;]
+</code></pre></section><section><span>some other things you can do with Folds</span><pre><code class="hs">  firstOf :: Getting (Leftmost a) s a -&gt; s -&gt; Maybe a
+  (^?) :: s -&gt; Getting (First a) s a -&gt; Maybe a
+
+  -- idealized
+  firstOf :: Fold a b -&gt; a -&gt; Maybe b
+  (^?) :: a -&gt; Fold a b -&gt; Maybe b
+
+  view :: Control.Monad.Reader.Class.MonadReader s m =&gt;
+          Getting a s a -&gt; m a
+  (^.) :: (^.) :: s -&gt; Getting a s a -&gt; a
+
+  --idealized
+  view :: Monoid b =&gt; Fold a b -&gt; a -&gt; b
+  (^.) :: Monoid b =&gt; a -&gt; Fold a b -&gt; b
+</code></pre></section><section><pre><code class="hs">  &gt; firstOf (replicated 3) 1
+  &gt; 1 ^? replicated 3
+  Just 1
+
+  &gt; firstOf (replicated 0) 1
+  &gt; 1 ^? replicated 0
+  Nothing
+</code></pre></section><section><pre><code class="hs">  -- the b in Fold a b must be a monoid!
+  &gt; view worded &quot;asdf fdsa&quot;
+  &gt; &quot;asdf fdsa&quot; ^. worded
+  &quot;asdffdsa&quot;
+
+  -- Nums are not monoids (they cannot be concattenated)
+  &gt; view (replicated 2) 1
+  No instance for (Num a0) arising from a use of ...
+
+  -- Num a =&gt; Sum a is monoidal, it just adds successive numbers
+  import Data.Monoid
+  &gt; view (replicated 2) (Sum 1)
+  &gt; Sum 1 ^. replicated 2
+  Sum { getSum = 2 }
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Getter</h5><pre><code class="hs">  type Getter s a =
+    (Contravariant f, Functor f) =&gt;
+      (a -&gt; f a) -&gt; s -&gt; f s
+ </code></pre></section><section><span>a getter Getter a b is roughly the same as a function (a -&gt; b)</span></section><section><pre><code class="hs">  view :: Control.Monad.Reader.Class.MonadReader s m =&gt;
+             Getting a s a -&gt; m a
+  (^.) :: s -&gt; Getting a s a -&gt; a
+
+  -- idealized
+  view :: Getter a b -&gt; a -&gt; b
+  (^.) :: a -&gt; Getter a b -&gt; b
+ </code></pre></section><section><span>but weren&#39;t those functions Folds?</span><pre><code class="hs">  view :: Getter a b -&gt; a -&gt; b
+  (^.) :: a -&gt; Getter a b -&gt; b
+
+  view :: Monoid b =&gt; Fold a b -&gt; a -&gt; b
+  (^.) :: Monoid b =&gt; a -&gt; Fold a b -&gt; b
+</code></pre></section><section><span>since a Getter is like a function, you can make one from one</span><pre><code class="hs">  to :: (Profunctor p, Contravariant f) =&gt;
+              (s -&gt; a) -&gt; Optic&#39; p f s a
+  to show :: (Show a, Profunctor p, Contravariant f) =&gt;
+              Optic&#39; p f a String
+
+  -- idealized
+  to :: (a -&gt; b) -&gt; Getter a b
+
+  show :: (Show a) -&gt; a -&gt; b
+  (+1) :: (Num a) -&gt; a -&gt; a
+
+  to show :: (Show a) =&gt; Getter a b
+  to (+1) :: (Num a) =&gt; Getter a a
+</code></pre></section><section><pre><code class="hs">  &gt; view (to show) 1
+  &gt; 1 ^. to show
+  &gt; &quot;1&quot;
+
+  &gt; view (to (+1)) 2
+  &gt; 2 ^. to (+1)
+  3
+
+  &gt; view (to (+1) . to show) 1
+  &gt; 1 ^. to (+1) . to show
+  &quot;2&quot;
+</code></pre></section><section><span>mind bender: all getters are valid folds</span></section><section><pre><code class="hs">  &gt; sumOf (to (+1)) 1
+  2
+
+  &gt; toListOf (to show) 1
+  &gt; 1 ^.. to show
+  &quot;1&quot;
+
+  -- folds and getters can be mixed, become folds (idealized)
+  to show . replicated 2 :: (Show a) =&gt; Fold a String
+
+  &gt; toListOf (to show . replicated 2) (1,2)
+  &gt; (1,2) ^.. to show . replicated 2
+  [&quot;(1,2)&quot;,&quot;(1,2)&quot;]
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Setter</h5><pre><code class="hs">  type Setter s t a b =
+    Settable f =&gt;
+      (a -&gt; f b) -&gt; s -&gt; f t
+
+  type Setter&#39; s a = Simple Setter = Setter s s a a
+ </code></pre></section><section><pre><code class="hs">  set :: ASetter s t a b -&gt; b -&gt; s -&gt; t
+  (.~) :: ASetter s t a b -&gt; b -&gt; s -&gt; t
+
+  -- idealized
+  set :: Setter&#39; a b -&gt; b -&gt; a -&gt; a
+  (.~) :: Setter&#39; a b -&gt; b -&gt; a -&gt; a
+
+  over :: ASetter s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t 
+  (%~) :: ASetter s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+
+  -- idealized
+  over :: Setter&#39; a b -&gt; (b -&gt; b) -&gt; a -&gt; a
+  (%~) :: Setter&#39; a b -&gt; (b -&gt; b) -&gt; a -&gt; a
+
+  -- utility function
+  (&amp;) :: a -&gt; (a -&gt; b) -&gt; b -- ($) flipped
+</code></pre></section><section><pre><code class="hs">  &gt; 1 &amp; print
+  &gt; print $ 1
+  &quot;1&quot;
+
+  &gt;[1,2,3] &amp; map show
+  &gt;map show $ [1,2,3]
+  [&quot;1&quot;,&quot;2&quot;,&quot;3&quot;]
+</code></pre></section><section><pre><code class="hs">  &gt; set id 2 1
+  &gt; 2 &amp; id .~ 1
+  1
+
+  &gt; set id [1,2,3] 1
+  &gt; [1,2,3] &amp; id .~ 1
+  1
+
+  &gt; over id (+1) 1
+  &gt; 1 &amp; over id (+1)
+  2
+
+  &gt; 1 &amp; over id (+1) . over id (+2)
+  4
+</code></pre></section><section><pre><code class="hs">  sets :: ((a -&gt; b) -&gt; s -&gt; t) -&gt; Setter s t a b
+  -- idealized
+  sets :: ((a -&gt; a) -&gt; b -&gt; b) -&gt; Setter&#39; b a
+
+  let
+    mysetfunc :: (b -&gt; b) -&gt; (a,b,c) -&gt; (a,b,c)
+    mysetfunc f (a,b,c) = (a, f b, c)
+
+    mysetter :: Setter&#39; (a,b,c) b
+    mysetter = sets mysetfunc
+</code></pre></section><section><pre><code class="hs">  &gt; set mysetter 4 (1,2,3)
+  &gt; (1,2,3) &amp; mysetter .~ 4
+  (1,4,3)
+ 
+  &gt; over mysetter (+21) (1,2,3)
+  &gt; (1,2,3) &amp; mysetter %~ (+21)
+  (1,23,3)
+</code></pre></section><section><pre><code class="hs">  mapped :: (Functor f, Settable f1) =&gt;
+    (a -&gt; f1 b) -&gt; f a -&gt; f1 (f b)
+
+  -- idealized
+  mapped :: Functor f =&gt; Setter&#39; (f a) a
+
+  &gt; over mapped show [1,2,3]
+  [&quot;1&quot;,&quot;2&quot;,&quot;3&quot;]
+
+  &gt; over (mapped . mapped) show [[1,2],[3,4]]
+  [[&quot;1&quot;,&quot;2&quot;],[&quot;3&quot;,&quot;4&quot;]]
+
+  &gt; over (mapped . mapped . mapped) (+1)
+          [[Just 1,Just 2],[Nothing,Just 4]]
+  [[Just 2,Just 3],[Nothing,Just 5]]
+</code></pre></section><section><span>there are specialized convenience setter operations</span><pre><code class="hs">  -- +, -, *, /
+  (+~) :: Num a =&gt; ASetter s t a a -&gt; a -&gt; s -&gt; t
+  (-~) :: Num a =&gt; ASetter s t a a -&gt; a -&gt; s -&gt; t
+  (*~) :: Num a =&gt; ASetter s t a a -&gt; a -&gt; s -&gt; t
+  (//~) :: Fractional a =&gt; ASetter s t a a -&gt; a -&gt; s -&gt; t
+  -- raise to a power
+  (^~) :: (Num a, Integral e) =&gt; ASetter s t a a -&gt; e -&gt; s -&gt; t 
+  -- logical or, logical and
+  (||~) :: ASetter s t Bool Bool -&gt; Bool -&gt; s -&gt; t
+  (&amp;&amp;~) :: ASetter s t Bool Bool -&gt; Bool -&gt; s -&gt; t
+  -- monoidal appending
+  (&lt;&gt;~) :: Monoid a =&gt; ASetter s t a a -&gt; a -&gt; s -&gt; t
+</code></pre></section><section><pre><code class="hs">  -- addition
+  &gt; 2 &amp; id +~ 2
+  4
+
+  -- boolean logic
+  &gt; True &amp; id &amp;&amp;~ False
+  False
+
+  -- monoidal concattenation
+  &gt; [1,2,3] &amp; id &lt;&gt;~ [4,5,6] &amp; id &lt;&gt;~ [7,8]
+  [1,2,3,4,5,6,7,8]
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Traversal</h5><pre><code class="hs">  type Traversal s t a b =
+    Applicative f =&gt; (a -&gt; f b) -&gt; s -&gt; f t
+
+  type Traversal&#39; s a = Simple Traversal = Traversal s s a a
+</code></pre></section><section><pre><code class="hs">  traverse :: (Applicative f, Traversable t) =&gt;
+    (a -&gt; f b) -&gt; t a -&gt; f (t b)
+
+  -- idealized
+  traverse :: (Traversable t) =&gt; Traversal&#39; (t a) (t b)
+
+  instance Traversable []
+  instance Traversable Maybe
+  instance Traversable (Either a)
+  instance Traversable Tree
+  -- others
+</code></pre></section><section><pre><code class="hs">  &gt; toListOf traverse [1,2,3]
+  &gt; [1,2,3] ^.. traverse
+  [1,2,3]
+
+  &gt; sumOf traverse [1,2,3]
+  6
+
+  &gt; over (traverse . traverse) (+1) [Left &#39;a&#39;,Right 2]
+  &gt; [Left &#39;a&#39;, Right 2] &amp; over (traverse . traverse) (+1)
+  &gt; [Left &#39;a&#39;, Right 3]
+
+  &gt; over (traverse . traverse . traverse)
+         negate (Just [[1,2],[3,4]])
+  &gt; (Just [[1,2],[3,4]]) &amp; over
+          (traverse . traverse . traverse) negate
+  Just ([-1,-2],[-3,-4])
+</code></pre></section><section><pre><code class="hs">  class Each s t a b | s -&gt; a, t -&gt; b, s b -&gt; t, t a -&gt; s where
+    each :: Traversal s t a b
+
+  -- idealized
+  each :: Each a a b b =&gt; Traversal&#39; a b
+
+  instance Each [a] [b] a b
+  instance Each (a,b) (c,d) a c
+  instance Each (a,b,c) (d,e,f) a d
+  instance Each (Maybe a) (Maybe b) a b
+  ...
+</code></pre></section><section><pre><code class="hs">  &gt; toListOf each [1,2,3]
+  &gt; [1,2,3] ^.. each
+  [1,2,3]
+
+  &gt; toListOf each (1,2,3,4)
+  &gt; (1,2,3,4) ^.. each
+  [1,2,3,4]
+
+  &gt; sumOf each (1,2,3)
+  6
+
+  &gt; nullOf each []
+  True
+</code></pre></section><section><pre><code class="hs">  &gt; set each 4 [1,2,3]
+  &gt; [1,2,3] &amp; set each 4
+  [4,4,4]
+
+  &gt; over (each . each . each) negate (Just ([1],[2,3]))
+  &gt; (Just ([1],[2,3])) &amp; over (each . each . each) negate
+  Just ([-1],[-2,-3])
+
+  -- warning, each and traverse are not always interchangeable
+  &gt; over (each . traverse . each) negate (Just ([1],[2,3]))
+  &gt; (Just ([1],[2,3])) &amp; over (each . traverse . each) negate
+  Just ([1],[-2,-3])
+</code></pre></section><section><pre><code class="hs">  -- looked at differently
+  each :: (Each a..., Applicative f) =&gt; (a -&gt; f a) -&gt; a -&gt; f a
+
+  &gt; each print [1,2] :: IO [()]
+  1
+  2
+
+  &gt; each print (&#39;a&#39;,&#39;b&#39;) :: IO [()]
+  &#39;a&#39;
+  &#39;b&#39;
+
+  &gt; (each . each) (putStrLn . show) (Just [2]) :: IO (Maybe [()])
+  2
+
+  &gt; each (putStrLn . show) (Nothing :: Maybe Int) :: IO (Maybe ())
+  (prints nothing)
+</code></pre></section><section><span>a Traversal can be made from anything that is already Traversable</span><pre><code class="hs">  class (Functor t, Foldable t) =&gt; Traversable t where
+    traverse :: Applicative f =&gt; (a -&gt; f b) -&gt; t a -&gt; f (t b)
+    sequenceA :: Applicative f =&gt; t (f a) -&gt; f (t a)
+    mapM :: Monad m =&gt; (a -&gt; m b) -&gt; t a -&gt; m (t b)
+    sequence :: Monad m =&gt; t (m a) -&gt; m (t a) 
+
+  instance Traversable []
+  instance Traversable Maybe
+  instance Traversable (Either a)
+  -- amongst many others
+
+  -- note that traverse from Traversable is already a usable lens
+  traverse :: Applicative f =&gt; (a -&gt; f b) -&gt; t a -&gt; f (t b)
+  traverse :: Traversal&#39; (t a) (t b)
+ </code></pre></section><section><span>a Traversal can work on monomorphic types</span></section><section><span>a Traversal can work on monomorphic types</span><pre><code class="hs">  -- idealized
+  Data.Text.Lens.text :: IsText t =&gt; Traversal&#39; t Char
+  instance IsText [Char] -- aka String
+  instance IsText Text
+  instance IsText ByteString
+  
+  &gt; (&quot;abc&quot; :: [Char]) &amp; over text succ
+  &gt; (&quot;abc&quot; :: Text) &amp; over text succ
+  &quot;bcd&quot;
+</code></pre></section><section><span>a Traversal is Applicative (and thus Monadic)</span></section><section><span>a Traversal is Applicative (and thus Monadic)</span><pre><code class="hs">  Data.Text.Lens.text :: IsText t =&gt; Traversal&#39; t Char
+  -- idealized
+  Data.Text.Lens.text :: (Applicative f, IsText t) =&gt;
+     (Char -&gt; f Char) -&gt; t -&gt; f t
+
+  &gt; text print &quot;12&quot; -- try to print each character
+  Couldn&#39;t match type &#39;()&#39; with &#39;Char&#39;
+
+  print :: Show a =&gt; a -&gt; IO () -- &lt;- that () is the problem
+</code></pre></section><section><span>a Traversal is Applicative (and thus Monadic)</span><pre><code class="hs">  let myprint :: Show a =&gt; a -&gt; IO a
+      myprint a = do
+        print a
+        return a
+
+  text myprint &quot;12&quot; :: IO String
+  &#39;1&#39;
+  &#39;2&#39;
+  (returns &quot;12&quot;)
+
+  -- (&gt;=&gt;) is like the (.) of Monads
+  text (myprint &gt;=&gt; myprint) &quot;1&quot; :: IO String
+  &#39;1&#39;
+  &#39;1&#39;
+  (returns &quot;1&quot;)
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Lens</h5><pre><code class="hs">  type Lens s t a b =
+      Functor f =&gt; (a -&gt; f b) -&gt; s -&gt; f t
+
+  type Lens&#39; s a = Simple Lens = Lens s s a a
+</code></pre></section><section><figure><figcaption>If you have a Lens&#39; a b, you also have:</figcaption></figure></section><section><figure><figcaption>If you have a Lens&#39; a b, you also have:</figcaption></figure><ul><li>a Getter a b</li></ul></section><section><figure><figcaption>If you have a Lens&#39; a b, you also have:</figcaption></figure><ul><li>a Getter a b</li><li>a Setter&#39; a b</li></ul></section><section><figure><figcaption>If you have a Lens&#39; a b, you also have:</figcaption></figure><ul><li>a Getter a b</li><li>a Setter&#39; a b</li><li>a Fold a b</li></ul></section><section><figure><figcaption>If you have a Lens&#39; a b, you also have:</figcaption></figure><ul><li>a Getter a b</li><li>a Setter&#39; a b</li><li>a Fold a b</li><li>a Traveral&#39; a b</li></ul></section><section><span>a lens can be constructed from a get and modify function</span><pre><code class="hs">  lens :: (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+  lens :: (s -&gt; a) -&gt; (s -&gt; a -&gt; s) -&gt; Lens&#39; s a
+</code></pre></section><section><pre><code class="hs">  data Person = Person Name Gender [Person] deriving Show
+  newtype Name = Name T.Text deriving Show
+
+  putin, hismom, hisdad :: Person
+  putin = Person &quot;Vladimir Vladimirovich Putin&quot;
+                 Male [hismom, hisdad]
+  hismom = Person ...
+  hisdad = Person ...
+
+  let mylens :: Lens&#39; Person Name
+      mylens = lens
+        (\(Person n _ _) -&gt; n)
+        (\(Person old g p) new -&gt; Person new g p)
+</code></pre></section><section><pre><code class="hs">  mylens :: Lens&#39; Person Name
+
+  &gt; putin
+  Person (Name &quot;Vladimir Vladimirovich Putin&quot;) Male [Per...
+
+  &gt; view mylens putin
+  &gt; putin ^. mylens
+  Name &quot;Vladimir Vladimirovich Putin&quot;
+
+  &gt; set mylens (Name &quot;mchealy&quot;) putin
+  &gt; putin &amp; mylens .~ Name &quot;mchealy&quot;
+  Person (Name &quot;mchealy&quot;) Male [Person &quot;Maria &quot;...
+</code></pre></section><section><span>you can also derive Lens&#39; from your own types via TH</span><pre><code class="hs">{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+
+...
+
+declareLenses [d|
+
+  data Person = Person {
+    pname :: Name,
+    pgender :: Gender,
+    parents :: [Person]
+  } deriving Show
+
+  |]</code></pre></section><section><span>resulting in these lenses</span><pre><code class="hs">  data Person = Person Name Gender [Person]
+
+  pname :: Lens&#39; Person Name
+  pgender :: Lens&#39; Person Gender
+  parents :: Lens&#39; Person [Person]
+
+</code></pre></section><section><pre><code class="hs">  &gt; view pname putin
+  &gt; putin ^. pname
+  Name &quot;Vladimir Vladimirovich Putin&quot;
+
+  &gt; view parents putin
+  &gt; putin ^. parents
+  [Person (Name &quot;Maria Ivanovna Putina&quot;) Female [],
+   Person (Name &quot;Vladimir Spiridonovich Putin&quot;) Male []]
+
+  &gt; toListOf (parents . traverse . pname) putin
+  &gt; putin ^.. parents . traverse . pname
+  [Name &quot;Maria Ivanovna Putina&quot;,
+   Name &quot;Vladimir Spiridonovich Putin&quot;]
+</code></pre></section><section><span>there isn&#39;t much you can&#39;t do at this point</span><pre><code class="hs">  &gt; putin ^? parents . traversed .
+             filtered (not . isFemale) . pname
+  Just (Name &quot;Vladimir Spiridonovich Putin&quot;)
+
+  &gt; let flipgender Male = Female; flipgender Female = Male
+  &gt; putin &amp; over (parents . traversed . gender) flipgender
+  Person (Name &quot;Vladimir Vladimirovich Putin&quot;) Male [
+    Person (Name &quot;Maria Ivanovna Putina&quot;) Male [],
+    Person (Name &quot;Vladimir Spiridonovich Putin&quot;) Female []
+  ]
+</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section></div></div><script src="public/reveal.js-3.3.0/lib/js/head.min.js"></script><script src="public/reveal.js-3.3.0/js/reveal.js"></script><script>Reveal.initialize({ 'center': true, 'controls': true, 'dependencies': [{ 'condition': (function() { return !document.body.classList; }), 'src': "public\/reveal.js-3.3.0\/lib\/js\/classList.js" }, { 'condition': (function() { return !(!(document.querySelector("[data-markdown]"))); }), 'src': "public\/reveal.js-3.3.0\/plugin\/markdown\/marked.js" }, { 'async': true, 'callback': (function() { hljs.initHighlightingOnLoad(); }), 'src': "public\/highlight\/highlight.pack.js" }], 'history': true, 'keyboard': null, 'progress': true, 'transition': "none" });</script></body></html>
