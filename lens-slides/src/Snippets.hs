@@ -96,7 +96,7 @@ opticalwitharrows = hcode [s|
 |]
 
 lenslike = hcode [s|
-type LensLike = (a -> f b) -> s -> f t
+  type LensLike = (a -> f b) -> s -> f t
 |]
 
 lenslikeasfunction = hcode [s|
