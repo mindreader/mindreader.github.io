@@ -544,7 +544,7 @@ declareLenses [d|
      AnIso s t a b -&gt; p t (f s) -&gt; p b (f a)
   -- idealized
   from :: Iso&#39; a b -&gt; Iso&#39; b a
-</code></pre></section><section><span>there are lots of useful isos</span><pre><code class="hs">  import Data.Char
+</code></pre></section><section><pre><code class="hs">  import Data.Char
   let myiso :: Iso&#39; Char Char
       myiso = iso toUpper toLower
 
@@ -557,7 +557,7 @@ declareLenses [d|
   &gt; &#39;A&#39; ^. from myiso
   -- also &#39;a&#39; ^. from myiso
   &#39;a&#39;
-</code></pre></section><section><pre><code class="hs">  enum :: Enum a =&gt; Iso&#39; Int a
+</code></pre></section><section><span>there are lots of useful isos</span><pre><code class="hs">  enum :: Enum a =&gt; Iso&#39; Int a
   reversed :: Reversing a =&gt; Iso&#39; a a 
   instance Reversing Text
   instance Reversing String
@@ -627,7 +627,7 @@ declareLenses [d|
   -- Text can always be converted back to bytestring
   &gt; (&quot;asdf&quot; :: Text) ^. re utf8
   &quot;asdf&quot; -- :: ByteString
-</code></pre></section></section><section><section><img style="width: 50%; height: 100%" src="https://imgur.com/ALlbPRa.png"></section></section><section><section><h5>Plated (optional)</h5><pre><code class="hs">  class Plated a where
+</code></pre></section></section><section><section><h5>Plated (optional)</h5><pre><code class="hs">  class Plated a where
     plate :: Traversal&#39; a a
 
   instance Plated [a]

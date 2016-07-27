@@ -169,8 +169,8 @@ presentation =
         Fresh $ h5_ "Iso" <> iso_type
       , Fresh $ span_ "Iso comes from the word \"isomorphism\"" <> "which means roughly equivalent, the same, interchangeable"
       , Fresh $ span_ "you can construct an Iso from two functions (a -> b) and (b -> a)" <>  iso_function_examples
-      , Fresh $ span_ "there are lots of useful isos" <> iso_function_examples_2
-      , Fresh $ iso_function_examples_3
+      , Fresh $ iso_function_examples_2
+      , Fresh $ span_ "there are lots of useful isos" <> iso_function_examples_3
       , Fresh $ iso_function_examples_4
 
     ],
@@ -185,8 +185,6 @@ presentation =
       , Fresh $ prism_function_examples_2
       , Fresh $ prism_function_examples_3
     ],
-
-    SlideSection [Fresh hierarchy],
 
     SlideSection [
         Fresh $ h5_ "Plated (optional)" <> plated_type
