@@ -90,7 +90,7 @@ presentation =
       , Fresh $ fold_replicate
       , ContinueLast $ span_ "takes an a, returns many a's (or none)"
       , Fresh $ fold_replicate_mine
-      , ContinueLast $ span_ "we have a fold. what do I do with it?"
+      , ContinueLast $ span_ "we have a fold. what do we do with it?"
       , Fresh $ fold_toList
       , Fresh $ fold_examples_1
       , Fresh $ foldable_class
@@ -209,9 +209,7 @@ presentation =
         Fresh "Thank you!"
       , ContinueLast $ mconcat [
            h5_ "View slides online at:"
-         , span_ "https://mindreader.github.io/lens-slides/index.html"
-         , with (h5_ "Code for these slides:") [style_ "margin-top: 20px"]
-         , span_ "https://github.com/mindreader/haskell-lens-slides"
+         , span_ "https://mindreader.github.io/lens-slides/"
          , with (h5_ "Questions, comments, corrections, clarifications:") [style_ "margin-top: 30px"]
          , span_ "david.mchealy@gmail.com"
         ]

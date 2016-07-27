@@ -62,7 +62,7 @@ type Prism s t a b =
 </code></pre></section><section><pre><code class="hs">  let
     myfold :: Fold a a
     myfold = replicated 5
-</code></pre><span>we have a fold. what do I do with it?</span></section><section><pre><code class="hs">  -- You can turn it into a list
+</code></pre><span>we have a fold. what do we do with it?</span></section><section><pre><code class="hs">  -- You can turn it into a list
   toListOf :: Getting (Data.Monoid.Endo [a]) s a -&gt; s -&gt; [a]
   (^..) :: s -&gt; Getting (Data.Monoid.Endo [a]) s a -&gt; [a]
 
@@ -704,4 +704,4 @@ declareLenses [d|
   ])
 
   -- piece of cake
-</code></pre></section></section><section><section>Thank you!</section><section>Thank you!<h5>View slides online at:</h5><span>https://mindreader.github.io/lens-slides/index.html</span><h5 style="margin-top: 20px">Code for these slides:</h5><span>https://github.com/mindreader/haskell-lens-slides</span><h5 style="margin-top: 30px">Questions, comments, corrections, clarifications:</h5><span>david.mchealy@gmail.com</span></section></section></div></div><script src="public/reveal.js-3.3.0/lib/js/head.min.js"></script><script src="public/reveal.js-3.3.0/js/reveal.js"></script><script>Reveal.initialize({ 'center': true, 'controls': true, 'dependencies': [{ 'condition': (function() { return !document.body.classList; }), 'src': "public\/reveal.js-3.3.0\/lib\/js\/classList.js" }, { 'condition': (function() { return !(!(document.querySelector("[data-markdown]"))); }), 'src': "public\/reveal.js-3.3.0\/plugin\/markdown\/marked.js" }, { 'async': true, 'callback': (function() { hljs.initHighlightingOnLoad(); }), 'src': "public\/highlight\/highlight.pack.js" }], 'history': true, 'keyboard': null, 'progress': true, 'transition': "none" });</script></body></html>
+</code></pre></section></section><section><section>Thank you!</section><section>Thank you!<h5>View slides online at:</h5><span>https://mindreader.github.io/lens-slides/</span><h5 style="margin-top: 30px">Questions, comments, corrections, clarifications:</h5><span>david.mchealy@gmail.com</span></section></section></div></div><script src="public/reveal.js-3.3.0/lib/js/head.min.js"></script><script src="public/reveal.js-3.3.0/js/reveal.js"></script><script>Reveal.initialize({ 'center': true, 'controls': true, 'dependencies': [{ 'condition': (function() { return !document.body.classList; }), 'src': "public\/reveal.js-3.3.0\/lib\/js\/classList.js" }, { 'condition': (function() { return !(!(document.querySelector("[data-markdown]"))); }), 'src': "public\/reveal.js-3.3.0\/plugin\/markdown\/marked.js" }, { 'async': true, 'callback': (function() { hljs.initHighlightingOnLoad(); }), 'src': "public\/highlight\/highlight.pack.js" }], 'history': true, 'keyboard': null, 'progress': true, 'transition': "none" });</script></body></html>
