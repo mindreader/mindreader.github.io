@@ -1,31 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Lib
-    ( genIndex
-    ) where
+module Lib (
+    genIndex,
+    Presentation(..), Topic(..), Slide(..), slide,
+    module Data.Tree
+) where
 
 import Lucid.Html5
 import Lucid.Base
 import Data.Monoid
 
 import JS
-import Snippets
 
 import Data.Tree
 
--- | These correlate to the html elements required for reveal.js to function
-reveal, slides, section, subsection :: Html () -> Html ()
-reveal inner = with (div_ inner) [class_ "reveal"]
-slides inner = with (div_ inner) [class_ "slides"]
-section = section_ [class_ "sect"]
-subsection = section_ [class_ "subsect"]
-
-
--- | These types correspond to what reveal.js is capable of displaying.
+-- | These correspond to what reveal.js is capable of displaying.
 newtype Presentation = Presentation [Topic]
 newtype Topic = Topic (Forest Slide)
-newtype Slide = Slide {
-  unSlide :: Html ()
-}
+newtype Slide = Slide { unSlide :: Html () }
 
 renderPresentation :: Presentation -> Html ()
 renderPresentation (Presentation topics) = page . reveal . slides . mconcat $
@@ -36,24 +27,34 @@ renderPresentation (Presentation topics) = page . reveal . slides . mconcat $
     renderTopic (Topic slds) = concatMap renderSlideTree slds
 
     renderSlideTree :: Tree Slide -> [Html ()]
-    renderSlideTree = fmap (mconcat . fmap unSlide) . pretrav []
+    renderSlideTree = fmap (mconcat . reverse . fmap unSlide) . pretrav []
 
-    -- | Im not sure what to call this.  Not a traversal, just every possible path to every node.
+    -- | Im not sure what to call this.  Not a traversal,
+    --   just every possible path from root to every node.
     pretrav :: [a] -> Tree a -> [[a]]
-    pretrav h (Node c []) = [h <> [c]]
-    pretrav h (Node c fs) = [h <> [c]] <> concatMap (pretrav (h <> [c])) fs
+    pretrav accum (Node c fs) = content : concatMap (pretrav content) fs
+      where content = c : accum
 
-genIndex :: IO ()
-genIndex = renderToFile "index.html" (renderPresentation presentation)
+genIndex :: Presentation -> IO ()
+genIndex pres = renderToFile "index.html" (renderPresentation pres)
 
+
+-- | These correlate to html elements required for reveal.js to function
+reveal, slides, section, subsection :: Html () -> Html ()
+reveal inner = with (div_ inner) [class_ "reveal"]
+slides inner = with (div_ inner) [class_ "slides"]
+section = section_ [class_ "sect"]
+subsection = section_ [class_ "subsect"]
+
+-- | Page head, js and css includes, etc.
 page ::  Html () -> Html ()
 page contents = doctypehtml_ (h <> b contents)
   where
     h :: Html ()
     b :: Html () -> Html ()
     h = head_ revealcss
-    b contents' = body_ [style_ "background-color: black"] (contents' <> revealjs <> script_ [] (revealInit defConfig))
-
+    b contents' = body_ [style_ "background-color: black"]
+      (contents' <> revealjs <> script_ [] (revealInit defConfig))
 
 revealcss :: Html ()
 revealcss =
@@ -67,188 +68,7 @@ revealjs =
   with (script_ "") [src_ "public/reveal.js-3.3.0/lib/js/head.min.js"] <>
   with (script_ "") [src_ "public/reveal.js-3.3.0/js/reveal.js"]
 
+slide :: Html () -> Forest Slide -> Tree Slide
+slide = Node . Slide
 
-presentation :: Presentation
-presentation = Presentation [
-    Topic [
-        Node (Slide producertype) [
-          Node (Slide consumertype) [
-            Node (Slide pipetype) []
-          ],
-          Node (Slide "d") [
-            Node (Slide "e") []
-          ],
-          Node (Slide "f") []
-        ],
-        Node (Slide "g") [
-          Node (Slide "h") [
-            Node (Slide "i") [],
-            Node (Slide "j") []
-          ],
-          Node (Slide "k") []
-        ]
-    ],
-    Topic [
-      Node (Slide "l") []
-    ]
-  ]
 
-{-
-presentation :: Slides
-presentation =
-  Slides [
-    SlideSection [
---      Fresh $ testsnippet,
-      Fresh $ h1_ "Lens" <> with (h4_ "The practical use of Edward A. Kmett's lens library") [style_ "margin-bottom: 40px"],
-      ContinueLast $ h5_ "View slides online at:" <> span_ "https://mindreader.github.io/lens-slides"
-    ],
-
-    SlideSection [
-        Fresh $ span_ "It all starts with the optical" <> baseoptical
-      , Fresh $ baseoptical <> opticalwitharrows
-      , ContinueLast $ span_ "after some substitution" <> lenslike
-      , Fresh $ span_ "everything has this same shape"
-      , ContinueLast $ lens_types_1
-      , ContinueSecondToLast $ lens_types_2
-      , Fresh $ span_ "takes a function, returns a function" <> lenslikeasfunction
-      , Fresh $ span_ "so you can string them together" <> type_1 <> type_2 <> type_just <> inst_choice_arrow
-      , ContinueLast $ lensesstrungtogether
-    ],
-
-    SlideSection [Fresh hierarchy],
-
-    SlideSection [
-        Fresh $ h5_ "Fold" <> fold_type
-      , Fresh $ fold_replicate
-      , ContinueLast $ span_ "takes an a, returns many a's (or none)"
-      , Fresh $ fold_replicate_mine
-      , ContinueLast $ span_ "we have a fold. what do we do with it?"
-      , Fresh $ fold_toList
-      , Fresh $ fold_examples_1
-      , Fresh $ foldable_class
-      , Fresh $ fold_lenses
-      , Fresh $ fold_examples_2
-      , Fresh $ fold_worded_listed
-      , Fresh $ fold_examples_3
-      , Fresh $ span_ "and of course they can be combined" <> fold_examples_4
-      , Fresh $ span_ "some other things you can do with Folds" <> fold_lenses_2
-      , Fresh $ fold_examples_5
-      , Fresh $ fold_examples_6
-    ],
-
-    SlideSection [Fresh hierarchy],
-
-    SlideSection [
-        Fresh $ h5_ "Getter" <> getter_type
-      , Fresh $ span_ "a getter Getter a b is roughly the same as a function (a -> b)"
-      , Fresh $ getter_operations
-      , Fresh $ span_ "but weren't those functions Folds?" <> getter_next_to_fold
-      , Fresh $ span_ "since a Getter is like a function, you can make one from one" <> to_types
-      , Fresh $ getter_examples
-      , Fresh $ span_ "mind bender: all getters are valid folds"
-      , Fresh $ getter_as_folds_examples
-    ],
-
-    SlideSection [Fresh hierarchy],
-
-    SlideSection [
-        Fresh $ h5_ "Setter" <> setter_type
-      , Fresh $ set_operations
-      , Fresh $ ampersand_examples
-      , Fresh $ setter_examples
-      , Fresh $ setter_examples_2
-      , Fresh $ setter_examples_3
-      , Fresh $ setter_examples_5
-      , Fresh $ span_ "there are specialized convenience setter operations" <> other_set_operations
-      , Fresh $ setter_examples_4
-    ],
-
-    SlideSection [Fresh hierarchy],
-
-    SlideSection [
-        Fresh $ h5_ "Traversal" <> traversal_type
-      , Fresh $ traverse_function
-      , Fresh $ traverse_function_examples
-      , Fresh $ each_type
-      , Fresh $ each_fold_examples
-      , Fresh $ each_setter_examples
-      , Fresh $ each_examples
-      , Fresh $ span_ "a Traversal can be made from anything that is already Traversable" <> traversable_class 
-      , Fresh $ span_ "a Traversal can work on monomorphic types"
-      , ContinueLast $ traversal_mono_examples
-      , Fresh $ span_ "a Traversal is Applicative (and thus Monadic)"
-      , ContinueLast $ traversal_monadic_examples
-      , ContinueSecondToLast $ traversal_monadic_examples_2
-    ],
-
-    SlideSection [Fresh hierarchy],
-
-    let ifyouhavelens = figure_ (figcaption_ "If you have a Lens' a b, you also have:")
-    in SlideSection [
-        Fresh $ h5_ "Lens" <> lens_type
-      , Fresh $ ifyouhavelens
-      , Fresh $ ifyouhavelens <> ul_ (li_ "a Getter a b")
-      , Fresh $ ifyouhavelens <> ul_ (li_ "a Getter a b" <> li_ "a Setter' a b")
-      , Fresh $ ifyouhavelens <> ul_ (li_ "a Getter a b" <> li_ "a Setter' a b" <> li_ "a Fold a b")
-      , Fresh $ ifyouhavelens <> ul_ (li_ "a Getter a b" <> li_ "a Setter' a b" <> li_ "a Fold a b" <> li_ "a Traveral' a b")
-      , Fresh $ span_ "a lens can be constructed from a get and modify function" <> lens_function
-      , Fresh $ lens_function_examples
-      , Fresh $ lens_function_examples_2
-      , Fresh $ span_ "you can also derive Lens' from your own types via TH" <> derive_person_lens
-      , Fresh $ span_ "resulting in these lenses" <> derive_person_lens_res
-      , Fresh $ lens_function_examples_3
-      , Fresh $ span_ "there isn't much you can't do at this point" <> lens_function_examples_4
-    ],
-
-    SlideSection [Fresh hierarchy],
-
-    SlideSection [
-        Fresh $ h5_ "Iso" <> iso_type
-      , Fresh $ span_ "Iso comes from the word \"isomorphism\"" <> "which means roughly equivalent, the same, interchangeable"
-      , Fresh $ span_ "you can construct an Iso from two functions (a -> b) and (b -> a)" <>  iso_function_examples
-      , Fresh $ iso_function_examples_2
-      , Fresh $ span_ "there are lots of useful isos" <> iso_function_examples_3
-      , Fresh $ iso_function_examples_4
-
-    ],
-
-    SlideSection [Fresh hierarchy],
-
-    SlideSection [
-        Fresh $ h5_ "Prism" <> prism_type
-      , Fresh $ span_ "A Prism a b allows for an a to possibly be converted to a b"
-      , Fresh $ span_ "and if you managed to turn it into a b, then it definitely can be turned back into an a"
-      , Fresh $ prism_function_examples
-      , Fresh $ prism_function_examples_2
-      , Fresh $ prism_function_examples_3
-    ],
-
-    SlideSection [
-        Fresh $ h5_ "Plated (optional)" <> plated_type
-      , Fresh $ plated_examples
-      , Fresh $ plated_examples_2
-    ],
-
-    SlideSection [
-        Fresh $ h5_ "Real life examples"
-      , Fresh $ span_ "xml-html-conduit-lens" <> xml_html_conduit_lens_example
-      , Fresh $ span_ "xml-html-conduit-lens" <> xml_html_conduit_lens_example_2
-      , Fresh $ span_ "lens-aeson" <> lens_aeson_example 
-      , Fresh $ span_ "lens-aeson" <> lens_aeson_example_2
-    ],
-
-    SlideSection [
-        Fresh "Thank you!"
-      , ContinueLast $ mconcat [
-           h5_ "View slides online at:"
-         , span_ "https://mindreader.github.io/lens-slides/"
-         , with (h5_ "Questions, comments, corrections, clarifications:") [style_ "margin-top: 30px"]
-         , span_ "david.mchealy@gmail.com"
-        ]
-    ]
-  ]
-  where
-    hierarchy :: Html ()
-    hierarchy = img_ [style_ "width: 50%; height: 100%", src_ "https://imgur.com/ALlbPRa.png"]
-
--}

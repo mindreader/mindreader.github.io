@@ -14,7 +14,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, JS, Snippets
+  exposed-modules:     Pres, Lib, JS, Snippets
   build-depends:       base >= 4.7 && < 5
                      , containers >= 0.5 && < 0.7
                      , lucid >= 2.9.5 && <= 3.0
