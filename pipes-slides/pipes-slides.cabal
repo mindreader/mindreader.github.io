@@ -34,3 +34,24 @@ executable pipes-slides
                      , pipes-slides
   default-language:    Haskell2010
   ghc-options: -Wall
+
+test-suite spec
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Gen.hs
+  -- other-modules:       Gen
+  build-depends:       base,
+                       pipes >= 4.0,
+                       pipes-network,
+                       pipes-safe,
+                       pipes-parse,
+--                       pipes-text,
+                       pipes-slides,
+--                        pipes-key-value-csv,
+                       mtl,
+                       network-simple,
+                       bytestring
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+

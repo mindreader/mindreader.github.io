@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Lib (
     genIndex,
-    Presentation(..), Topic(..), Slide(..), slide,
-    module Data.Tree
+    Presentation(..), Topic(..), Slide,
+    slide,
 ) where
 
 import Lucid.Html5
@@ -17,6 +17,7 @@ import Data.Tree
 newtype Presentation = Presentation [Topic]
 newtype Topic = Topic (Forest Slide)
 newtype Slide = Slide { unSlide :: Html () }
+
 
 renderPresentation :: Presentation -> Html ()
 renderPresentation (Presentation topics) = page . reveal . slides . mconcat $
@@ -69,6 +70,4 @@ revealjs =
   with (script_ "") [src_ "public/reveal.js-3.3.0/js/reveal.js"]
 
 slide :: Html () -> Forest Slide -> Tree Slide
-slide = Node . Slide
-
-
+slide = Node . Slide . div_
