@@ -273,8 +273,11 @@ presentation = Presentation [
 
 intro :: Html ()
 intro = h1_ "Pipes" <>
-    h4_ [style_ "margin-bottom: 40px"] "The practical use of Gabriel Gonzales's pipes ecosystem" <>
-    h5_ ("View slides online at: " <> span_ "https://mindreader.github.io/pipes-slides")
+    (h4_ [style_ "margin-bottom: 40px"] "Practical use of Gabriel Gonzales's pipes library and ecosystem") <>
+    (div_ [style_ "font-size: 50%"] "David McHealy (david.mchealy@gmail.com)") <>
+    (div_ [style_ "font-size: 70%"] "View slides online at: ") <>
+    (div_ [style_ "font-size: 50%"] "https://mindreader.github.io/pipes-slides")
+    
 
 {-
                         Identity     | Composition |  Point-ful
